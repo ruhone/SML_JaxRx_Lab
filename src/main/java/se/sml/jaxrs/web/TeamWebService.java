@@ -23,8 +23,11 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
 import se.sml.jaxrs.model.TeamWeb;
+import se.sml.jaxrs.model.UserWeb;
 import se.sml.sdj.model.Team;
+import se.sml.sdj.model.User;
 import se.sml.sdj.service.TeamService;
+import se.sml.sdj.service.UserService;
 
 @Path("/teams")
 @Produces(MediaType.APPLICATION_XML)
@@ -64,16 +67,17 @@ public final class TeamWebService {
 	@Path("/all")
 	public Response getAllTeams() {
 
-		List<Team> result = new ArrayList<>();
-		result = getBean(TeamService.class).findAll();
+		Collection<Team> teamResult = new ArrayList<>();
+		teamResult = getBean(TeamService.class).findAll();
 
-		if (result == null) {
+		if (teamResult == null) {
 			throw new WebApplicationException(Status.NOT_FOUND);
 		}
 
-		result.forEach(e -> System.out.println(e.getName()));
+		Collection<TeamWeb> teamWebResult = new ArrayList<>();
+		teamResult.forEach(tr -> teamWebResult.add(new TeamWeb(tr.getName(), tr.getStatus())));
 
-		GenericEntity<List<Team>> entity = new GenericEntity<List<Team>>(result) {};
+		GenericEntity<Collection<TeamWeb>> entity = new GenericEntity<Collection<TeamWeb>>(teamWebResult) {};
 		return Response.ok(entity).build();
 		
 		/*	
@@ -99,4 +103,15 @@ public final class TeamWebService {
 		return Response.noContent().build();
 	}
 
+	// Add user to a team
+	@PUT
+	@Path("{teamName}/{userNumber}")
+	public Response updateUser(@PathParam("teamName") String teamName, @PathParam("userNumber") String userNumber) {
+		User user = getBean(UserService.class).findByUserNumber(userNumber);
+		if (user == null) {
+			throw new WebApplicationException(Status.NOT_FOUND);
+		}
+		getBean(TeamService.class).addUser(teamName, user);			
+		return Response.noContent().build();
+	}
 }
